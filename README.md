@@ -3,7 +3,7 @@
 This projects implements (part of) the propretiary [Link2Home](https://www.l2h-rev.de/) communication protocol for monitoring and controlling devices from third party projects.
 
 :warning: This is under development and in very early stage!
-:warning: This project is based on reverse engineering done and is neither associated nor supported by the offical product. This is mere a workaround to the missing of an official open API or third party integrations
+:warning: This project is based on reverse engineering and is neither associated nor supported by the offical product. This is mere a workaround to the missing of an official open API or third party integrations
 
 # Basics
 The Link2Home protocol is relying on two major parts:
