@@ -30,10 +30,14 @@ server.setStatus("192.168.1.3", 1, True)
 server.listen(deviceCallback)
 ```
 
-Devices will be auto-discovered with their first state switch (i.e. when they are sending their first status update after the program has started), only after that, the library will be able to successfully communicate with the device.
+Devices will be auto-discovered with their first state switch (i.e. when they are sending their first status update after the program has started), only after that, the library will be able to successfully communicate with the device. It is recommended that you trigger the devices manually (either by their physical buttons or via the official app) after having the server up to make autodiscovery work faster. Please Note: Apps currently also show up as devices.
 
 `main.py` is also offering a CLI mode that will log status updates of devices and allow to alternate states of a device by it's IP supplied as an argument:
 
 ```
 python main.py --ip 192.168.1.3
 ```
+
+# Development
+
+As of now, this library has been developed and tested solely with a EMQ303WF-1 smart socket
