@@ -1,4 +1,5 @@
 import socket
+import copy
 
 class UDPServer:
     def __init__(self) -> None:
@@ -7,19 +8,27 @@ class UDPServer:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(("", 35932))
 
-    def decodeStatusBroadcast(self, data, address):
-        ip = address[0]    
+    def decodeStatusBroadcast(self, data, ip, dev):
         mac = data[2:8]
         channel = data[len(data)-2]
         is_on = False if data[len(data)-1] is 0 else True
 
-        dev = self.devices[ip] if ip in self.devices else {"channels": {}}
         dev["mac"] = mac
         dev["channels"][channel] = is_on
         dev["ip"] = ip
 
-        self.devices[ip] = dev
         return dev
+
+    def processMessage(self, data, address):
+        ip = address[0]
+        oldState = self.devices[ip] if ip in self.devices else {"channels": {}}
+        newState = self.decodeStatusBroadcast(data, ip, copy.deepcopy(oldState))
+
+        if oldState == newState:
+            return None
+
+        self.devices[ip] = newState
+        return newState
 
     def sendMessage(self, ip, message):
         self.sock.sendto(message, (ip, 35932))
@@ -38,6 +47,6 @@ class UDPServer:
     def listen(self, subscriber=None):
         while True:
             data, addr = self.sock.recvfrom(1024)
-            deviceStatus = self.decodeStatusBroadcast(data, addr)
-            if subscriber is not None:
+            deviceStatus = self.processMessage(data, addr)
+            if deviceStatus is not None and subscriber is not None:
                 subscriber(deviceStatus)
