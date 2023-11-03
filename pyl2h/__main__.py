@@ -2,6 +2,7 @@ import argparse
 import asyncio
 from time import sleep
 from .udp import UDPServer
+from .cloud_client import Cloud_Client
 
 server = UDPServer()
 
@@ -18,6 +19,20 @@ def get_arguments() -> argparse.Namespace:
         help="IP of the device to be used for testing. Will Flip-Flop Channel 1 every Minute",
     )
 
+    parser.add_argument(
+        "--user",
+        type=str,
+        default=None,
+        help="Username for Link2Home Cloud/App to use for discovery",
+    )
+
+    parser.add_argument(
+        "--password",
+        type=str,
+        default=None,
+        help="Password for Link2Home Cloud/App to use for discovery",
+    )
+
     arguments = parser.parse_args()
 
     return arguments
@@ -30,6 +45,12 @@ def monitorUpdates():
 
 def main() -> int:
     args = get_arguments()
+
+    cloud = Cloud_Client()
+    if "user" in args and "password" in args:
+        cloud.login(args.user, args.password)
+        cloud.list_devices()
+
     ip = args.ip
 
     loop = asyncio.get_event_loop()
