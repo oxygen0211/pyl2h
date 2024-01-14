@@ -20,6 +20,10 @@ headers = {
 
 class CloudClient:
     """Cloud client implementation"""
+
+    def __init__(self) -> None:
+        self.session = {}
+
     def hash_password(self, password):
         """Generate MD5 Hash for user Password"""
         md5 = MD5.new()
@@ -66,7 +70,7 @@ class CloudClient:
         body = r.json()
 
         if not body['success'] or not "data" in body:
-            raise Exception("Did not get a processable device listing from Link2Home Cloud")
+            raise ValueError("Did not get a processable device listing from Link2Home Cloud")
 
         devices = []
         for rec in body['data']:
@@ -106,7 +110,7 @@ class CloudClient:
 
         print(f'Query String: {query_string}')
 
-        with open("pyl2h/private_key.pem") as key_file:
+        with open("pyl2h/private_key.pem", encoding="utf-8") as key_file:
             key_data = key_file.read()
             key = RSA.import_key(key_data)
             #key = rsa.PrivateKey.load_pkcs1(key_data)

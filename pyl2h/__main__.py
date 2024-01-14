@@ -75,7 +75,7 @@ def main() -> int:
         devices = server.get_devices()
         print("Devices:")
         for d in devices.items():
-            print(devices[d])
+            print(d)
 
         if ip is not None and ip in devices:
             dev = devices[ip]
