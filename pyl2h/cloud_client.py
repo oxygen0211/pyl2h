@@ -1,8 +1,10 @@
 import collections
 import base64
 import requests
-from urllib.parse import urlencode
+from urllib.parse import urlencode, unquote
 
+import rsa
+from rsa import PrivateKey
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA1, MD5
 from Crypto.PublicKey import RSA
@@ -18,19 +20,20 @@ headers = {
         }
 
 class Cloud_Client:
-    
-    def login(self, username, password):
+    def hash_password(self, password):
         md5 = MD5.new()
         md5.update(password.encode("utf-8"))
-        pass_hash = md5.hexdigest()
+        return md5.hexdigest().upper()
+    
+    def login(self, username, password):
         
         data = {
             "appName": "Link2Home",
             "appType": "2",
             "appVersion": "1.1.1",
-            "password": pass_hash.upper(),
-            "phoneSysVersion": "iOS 16.1.1",
-            "phoneType": "iPhone13,3",
+            "password": self.hash_password(password),
+            "phoneSysVersion": "iOS 17.1.2",
+            "phoneType": "iPad13,8",
             "username": username,
         }
         
@@ -41,27 +44,57 @@ class Cloud_Client:
         body = r.json()
         print("Status: {}, Body: {}".format(r.status_code, body))
 
-        if "data" in body:
+        if body['success'] and "data" in body:
             print("We are logged in!")
-            self.session = body.data
+            self.session = body["data"]
+        else:
+            print("Login failed!")
+            self.session = None
 
     def list_devices(self):
+        if self.session is None:
+            return []
         print("Getting registered devices...")
         data = {
-            "token": self.session.token
+            "token": self.session["token"]
         }
 
         data["sign"] = self.get_sign(data)
         r = requests.get(device_list_url, params=data)
         body = r.json()
         print("Status: {}, Body: {}".format(r.status_code, body))
+
     def get_sign(self, data):
         sorted_data = collections.OrderedDict(sorted(data.items()))
-        query_string = urlencode(sorted_data)
+        query_string = unquote(urlencode(sorted_data)).encode("utf-8")
 
-        #key = PKCS8.unwrap(bytes.fromhex(private_key_hash))
+        query_string = ""
+        for key in data:
+            query_string = query_string + key + "=" + data[key] + "&"
+        query_string = query_string[:-1].encode("utf-8")
+
+        print(f'Query String: {query_string}')
+
+        
+
+        with open("pyl2h/private_key.pem") as key_file:
+            key_data = key_file.read()
+            key = RSA.import_key(key_data)
+            #key = rsa.PrivateKey.load_pkcs1(key_data)
+        
+        hash = SHA1.new(query_string)
+        signer = pkcs1_15.PKCS115_SigScheme(key)
+        signature = signer.sign(hash)
+        #signature = rsa.sign(query_string, key, 'SHA-1')
+        encoded_sig = base64.b64encode(signature).decode('utf-8')
+        return encoded_sig
+
+    def get_sign_old(self, data):
+        sorted_data = collections.OrderedDict(sorted(data.items()))
+        query_string = unquote(urlencode(sorted_data))
+        print(f'Query String: {query_string}')
         key = RSA.import_key(bytes.fromhex(private_key_hash))
         h = SHA1.new(query_string.encode("utf-8"))
-        print("hash: {}".format(h))
         signature = pkcs1_15.new(key).sign(h)
-        return base64.b64encode(signature).decode('ascii')
+        encoded_sig = base64.urlsafe_b64encode(signature).decode('ascii')
+        return encoded_sig

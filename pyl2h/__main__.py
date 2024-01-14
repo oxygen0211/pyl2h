@@ -33,6 +33,13 @@ def get_arguments() -> argparse.Namespace:
         help="Password for Link2Home Cloud/App to use for discovery",
     )
 
+    parser.add_argument(
+        "--sign",
+        type=str,
+        default=None,
+        help="Password sign as captured from original requests. For veryfing internal logic during debugging",
+    )
+
     arguments = parser.parse_args()
 
     return arguments
@@ -69,3 +76,32 @@ def main() -> int:
             server.setStatus(ip, 1, newState)
 
         sleep(60)
+
+def createSign() -> bool:
+    args = get_arguments()
+    cloud = Cloud_Client()
+
+    data = {
+        "appName": "Link2Home",
+        "appType": "2",
+        "appVersion": "1.1.1",
+        "password": cloud.hash_password(args.password),
+        "phoneSysVersion": "iOS 17.1.2",
+        "phoneType": "iPad13,8",
+        "username": args.user,
+    }
+
+    calculated_sign = cloud.get_sign(data)
+
+    print("")
+    if calculated_sign == args.sign:
+        print("Success! Calctulated sign equals control sign")
+    
+    else:
+        print("Failed! Calculated sign differs from control sign")
+
+    print("")
+    print("Expected sign (control): {}".format(args.sign))
+    print("")
+    print("Calculated sign: {}".format(calculated_sign))
+        
