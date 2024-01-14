@@ -112,6 +112,5 @@ def create_sign() -> bool:
         print("Success! Calctulated sign equals control sign")
         return True
 
-    else:
-        print("Failed! Calculated sign differs from control sign")
-        return False
+    print("Failed! Calculated sign differs from control sign")
+    return False
