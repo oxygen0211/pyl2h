@@ -1,3 +1,5 @@
+"""CLI functionality for debugging and testing."""
+
 import argparse
 import asyncio
 from time import sleep

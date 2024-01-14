@@ -1,3 +1,5 @@
+"""UDP functionality for internal communication with devices."""
+
 import socket
 import copy
 
