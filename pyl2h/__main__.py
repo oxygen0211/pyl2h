@@ -24,30 +24,32 @@ def get_arguments() -> argparse.Namespace:
 
     return arguments
 
-def deviceCallback(deviceStatus):
-    print("New Device Update: {}".format(deviceStatus))
+def device_callback(device_status):
+    """Callback for new status updates by devices."""
+    print(f'New Device Update: {device_status}')
 
-def monitorUpdates():
-    server.listen(deviceCallback)
+def monitor_updates():
+    """Entrypoint for starting to listen for device updates"""
+    server.listen(device_callback)
 
 def main() -> int:
+    """Main entrypoint for CLI based operation and example for usage"""
     args = get_arguments()
     ip = args.ip
 
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, monitorUpdates)
-    
+    loop.run_in_executor(None, monitor_updates)
+
     while True:
-        devices = server.getDevices()
+        devices = server.get_devices()
         print("Devices:")
-        for d in devices:
+        for d in devices.items():
             print(devices[d])
 
         if ip is not None and ip in devices:
             dev = devices[ip]
-            newState = not dev["channels"][1]
-            print("Switching device {} to {}".format(ip, newState))
-            server.setStatus(ip, 1, newState)
+            new_state = not dev["channels"][1]
+            print(f'Switching device {ip} to {new_state}')
+            server.set_status(ip, 1, new_state)
 
         sleep(60)
-        
