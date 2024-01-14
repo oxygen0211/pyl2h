@@ -52,3 +52,4 @@ class UDPServer:
             deviceStatus = self.processMessage(data, addr)
             if deviceStatus is not None and subscriber is not None:
                 subscriber(deviceStatus)
+                

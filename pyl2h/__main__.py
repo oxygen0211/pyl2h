@@ -50,3 +50,4 @@ def main() -> int:
             server.setStatus(ip, 1, newState)
 
         sleep(60)
+        

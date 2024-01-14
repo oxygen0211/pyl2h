@@ -125,3 +125,4 @@ class Cloud_Client:
         signature = pkcs1_15.new(key).sign(h)
         encoded_sig = base64.urlsafe_b64encode(signature).decode('ascii')
         return encoded_sig
+    
