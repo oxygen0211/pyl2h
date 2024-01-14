@@ -15,7 +15,7 @@ class UDPServer:
         """Decode status update broadcasted by device"""
         mac = data[2:8]
         channel = data[len(data)-2]
-        is_on = False if data[len(data)-1] is 0 else True
+        is_on = not data[len(data)-1] == 0
 
         dev["mac"] = mac
         dev["channels"][channel] = is_on
