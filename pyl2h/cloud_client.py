@@ -1,32 +1,33 @@
+"""Optional (but helpful) client to communicate with Link2Homes cloud"""
+
 import collections
 import base64
-import requests
 from urllib.parse import urlencode, unquote
+import requests
 
-import rsa
-from rsa import PrivateKey
 from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA1, MD5
 from Crypto.PublicKey import RSA
-from Crypto.IO import PKCS8
 
-from .const import private_key_hash, login_url, device_list_url, user_agent, accept_language
+from .const import LOGIN_URL, DEVICE_LIST_URL, USER_AGENT, ACCEPT_LANGUAGE
 
 headers = {
             "Accept": "*/*",
-            "User-Agent": user_agent,
-            "Accept-Language": accept_language,
+            "User-Agent": USER_AGENT,
+            "Accept-Language": ACCEPT_LANGUAGE,
             "Content-Type": "application/x-www-form-urlencoded"
         }
 
-class Cloud_Client:
+class CloudClient:
+    """Cloud client implementation"""
     def hash_password(self, password):
+        """Generate MD5 Hash for user Password"""
         md5 = MD5.new()
         md5.update(password.encode("utf-8"))
         return md5.hexdigest().upper()
-    
+
     def login(self, username, password):
-        
+        """Login to the cloud and cache the session within the client instance"""
         data = {
             "appName": "Link2Home",
             "appType": "2",
@@ -36,13 +37,13 @@ class Cloud_Client:
             "phoneType": "iPad13,8",
             "username": username,
         }
-        
-        data["sign"] = self.get_sign(data)
-        print("Request: {}".format(data))
 
-        r = requests.post(login_url, params=data, headers=headers)
+        data["sign"] = self.get_sign(data)
+        print(f'Request: {data}')
+
+        r = requests.post(LOGIN_URL, params=data, headers=headers, timeout=120)
         body = r.json()
-        print("Status: {}, Body: {}".format(r.status_code, body))
+        print(f'Status: {r.status_code}, Body: {body}')
 
         if body['success'] and "data" in body:
             print("We are logged in!")
@@ -52,6 +53,7 @@ class Cloud_Client:
             self.session = None
 
     def list_devices(self):
+        """List devices connected to the user account"""
         if self.session is None:
             return []
         print("Getting registered devices...")
@@ -60,12 +62,12 @@ class Cloud_Client:
         }
 
         data["sign"] = self.get_sign(data)
-        r = requests.get(device_list_url, params=data)
+        r = requests.get(DEVICE_LIST_URL, params=data, timeout=120)
         body = r.json()
 
         if not body['success'] or not "data" in body:
             raise Exception("Did not get a processable device listing from Link2Home Cloud")
-        
+
         devices = []
         for rec in body['data']:
             dev = {
@@ -89,10 +91,11 @@ class Cloud_Client:
             }
 
             devices.append(dev)
-        
+
         return devices
 
     def get_sign(self, data):
+        """Calculate SHA-1 Signature for a given request"""
         sorted_data = collections.OrderedDict(sorted(data.items()))
         query_string = unquote(urlencode(sorted_data)).encode("utf-8")
 
@@ -103,26 +106,15 @@ class Cloud_Client:
 
         print(f'Query String: {query_string}')
 
-        
-
         with open("pyl2h/private_key.pem") as key_file:
             key_data = key_file.read()
             key = RSA.import_key(key_data)
             #key = rsa.PrivateKey.load_pkcs1(key_data)
-        
-        hash = SHA1.new(query_string)
+
+        hash_value = SHA1.new(query_string)
         signer = pkcs1_15.PKCS115_SigScheme(key)
-        signature = signer.sign(hash)
+        signature = signer.sign(hash_value)
         #signature = rsa.sign(query_string, key, 'SHA-1')
         encoded_sig = base64.b64encode(signature).decode('utf-8')
         return encoded_sig
-
-    def get_sign_old(self, data):
-        sorted_data = collections.OrderedDict(sorted(data.items()))
-        query_string = unquote(urlencode(sorted_data))
-        print(f'Query String: {query_string}')
-        key = RSA.import_key(bytes.fromhex(private_key_hash))
-        h = SHA1.new(query_string.encode("utf-8"))
-        signature = pkcs1_15.new(key).sign(h)
-        encoded_sig = base64.urlsafe_b64encode(signature).decode('ascii')
-        return encoded_sig
+    

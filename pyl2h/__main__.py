@@ -4,7 +4,7 @@ import argparse
 import asyncio
 from time import sleep
 from .udp import UDPServer
-from .cloud_client import Cloud_Client
+from .cloud_client import CloudClient
 
 server = UDPServer()
 
@@ -59,7 +59,7 @@ def main() -> int:
     """Main entrypoint for CLI based operation and example for usage"""
     args = get_arguments()
 
-    cloud = Cloud_Client()
+    cloud = CloudClient()
     if "user" in args and "password" in args:
         cloud.login(args.user, args.password)
         devices = cloud.list_devices()
@@ -88,7 +88,7 @@ def main() -> int:
 def create_sign() -> bool:
     """Test request signature against control value (e.g. from intercepted communication)"""
     args = get_arguments()
-    cloud = Cloud_Client()
+    cloud = CloudClient()
 
     data = {
         "appName": "Link2Home",
