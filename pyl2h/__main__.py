@@ -1,3 +1,5 @@
+"""CLI functionality for debugging and testing."""
+
 import argparse
 import asyncio
 from time import sleep
@@ -37,20 +39,24 @@ def get_arguments() -> argparse.Namespace:
         "--sign",
         type=str,
         default=None,
-        help="Password sign as captured from original requests. For veryfing internal logic during debugging",
+        help="Password sign as captured from original requests."\
+        " For veryfing internal logic during debugging",
     )
 
     arguments = parser.parse_args()
 
     return arguments
 
-def deviceCallback(deviceStatus):
-    print("New Device Update: {}".format(deviceStatus))
+def device_callback(device_status):
+    """Callback for new status updates by devices."""
+    print(f'New Device Update: {device_status}')
 
-def monitorUpdates():
-    server.listen(deviceCallback)
+def monitor_updates():
+    """Entrypoint for starting to listen for device updates"""
+    server.listen(device_callback)
 
 def main() -> int:
+    """Main entrypoint for CLI based operation and example for usage"""
     args = get_arguments()
 
     cloud = Cloud_Client()
@@ -58,28 +64,29 @@ def main() -> int:
         cloud.login(args.user, args.password)
         devices = cloud.list_devices()
         print(f"discovered devices from cloud: {devices}")
-        server.setDiscoveredDevices(devices)
+        server.set_discovered_devices(devices)
 
     ip = args.ip
 
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, monitorUpdates)
-    
+    loop.run_in_executor(None, monitor_updates)
+
     while True:
-        devices = server.getDevices()
+        devices = server.get_devices()
         print("Devices:")
-        for d in devices:
+        for d in devices.items():
             print(devices[d])
 
         if ip is not None and ip in devices:
             dev = devices[ip]
-            newState = not dev["channels"][1]
-            print("Switching device {} to {}".format(ip, newState))
-            server.setStatus(ip, 1, newState)
+            new_state = not dev["channels"][1]
+            print(f'Switching device {ip} to {new_state}')
+            server.set_status(ip, 1, new_state)
 
         sleep(60)
 
-def createSign() -> bool:
+def create_sign() -> bool:
+    """Test request signature against control value (e.g. from intercepted communication)"""
     args = get_arguments()
     cloud = Cloud_Client()
 
@@ -96,14 +103,15 @@ def createSign() -> bool:
     calculated_sign = cloud.get_sign(data)
 
     print("")
+    print(f'Expected sign (control): {args.sign}')
+    print("")
+    print(f'Calculated sign: {calculated_sign}')
+    print("")
+
     if calculated_sign == args.sign:
         print("Success! Calctulated sign equals control sign")
-    
+        return True
+
     else:
         print("Failed! Calculated sign differs from control sign")
-
-    print("")
-    print("Expected sign (control): {}".format(args.sign))
-    print("")
-    print("Calculated sign: {}".format(calculated_sign))
-        
+        return False

@@ -1,8 +1,11 @@
+"""UDP functionality for internal communication with devices."""
+
 import socket
 import copy
 import binascii
 
 class UDPServer:
+    """UDP Listener/Server functionality"""
     def __init__(self) -> None:
         self.devices = {}
 
@@ -10,18 +13,20 @@ class UDPServer:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(("", 35932))
 
-    def setDiscoveredDevices(self, devices):
+    def set_discovered_devices(self, devices):
+        """Add known devices that have been discovered (i.e. through cloud)"""
         for dev in devices:
             mac = binascii.a2b_qp(dev['mac'])
             self.devices[mac] = dev
             message = b'\xa1\x00'+mac+b'\x00\x07\x01\x00\x00\x00\x00\x00\x00\x00\x23'
             print(f'Sending discovery for {mac}')
-            self.sendMessage('255.255.255.255', message)
+            self.send_message('255.255.255.255', message)
 
-    def decodeStatusBroadcast(self, data, ip, dev):
+    def decode_status_broadcast(self, data, ip, dev):
+        """Decode status update broadcasted by device"""
         mac = data[2:8]
         channel = data[len(data)-2]
-        is_on = False if data[len(data)-1] is 0 else True
+        is_on = not data[len(data)-1] == 0
 
         dev["mac"] = mac
         dev["channels"][channel] = is_on
@@ -29,35 +34,39 @@ class UDPServer:
 
         return dev
 
-    def processMessage(self, data, address):
-        print(f"got message: {data} from address: {address}")
+    def process_message(self, data, address):
+        """Process message received on UDP socket"""
         ip = address[0]
-        oldState = self.devices[ip] if ip in self.devices else {"channels": {}}
-        newState = self.decodeStatusBroadcast(data, ip, copy.deepcopy(oldState))
+        old_state = self.devices[ip] if ip in self.devices else {"channels": {}}
+        new_state = self.decode_status_broadcast(data, ip, copy.deepcopy(old_state))
 
-        if oldState == newState:
+        if old_state == new_state:
             return None
 
-        self.devices[newState["mac"]] = newState
-        return newState
+        self.devices[ip] = new_state
+        return new_state
 
-    def sendMessage(self, ip, message):
+    def send_message(self, ip, message):
+        """Send a message to a device or Broadcast"""
         self.sock.sendto(message, (ip, 35932))
 
-    def setStatus(self, ip, channel: int, state):
-        stateByte = b'\xff' if state else b'\x00'
-        channelByte = bytes([channel])
+    def set_status(self, ip, channel: int, state):
+        """Change the status of a device by sending a UDP multicast to it"""
+        state_byte = b'\xff' if state else b'\x00'
+        channel_byte = bytes([channel])
         device = self.devices[ip]
         mac = device["mac"]
-        message = b'\xa1\x04'+mac+b'\x00\x09\x01\xf2\x02\xd1\x71\x50\x01'+channelByte+stateByte
-        self.sendMessage(ip, message)
+        message = b'\xa1\x04'+mac+b'\x00\x09\x01\xf2\x02\xd1\x71\x50\x01'+channel_byte+state_byte
+        self.send_message(ip, message)
 
-    def getDevices(self):
+    def get_devices(self):
+        """Get the currently known list of devices"""
         return self.devices
 
     def listen(self, subscriber=None):
+        """Start listening for device Updates on the UDP procotol"""
         while True:
             data, addr = self.sock.recvfrom(1024)
-            deviceStatus = self.processMessage(data, addr)
-            if deviceStatus is not None and subscriber is not None:
-                subscriber(deviceStatus)
+            device_status = self.process_message(data, addr)
+            if device_status is not None and subscriber is not None:
+                subscriber(device_status)
