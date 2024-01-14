@@ -62,7 +62,35 @@ class Cloud_Client:
         data["sign"] = self.get_sign(data)
         r = requests.get(device_list_url, params=data)
         body = r.json()
-        print("Status: {}, Body: {}".format(r.status_code, body))
+
+        if not body['success'] or not "data" in body:
+            raise Exception("Did not get a processable device listing from Link2Home Cloud")
+        
+        devices = []
+        for rec in body['data']:
+            dev = {
+                'mac': rec['macAddress'],
+                'companyCode': rec['companyCode'],
+                'deviceType': rec['deviceType'], 
+                'authCode': rec['authCode'], 
+                'name': rec['deviceName'], 
+                'image': rec['imageName'], 
+                'orderNumber': rec['orderNumber'], 
+                'lastOperation': rec['lastOperation'], 
+                'cityId': rec['cityId'], 
+                'zoneId': rec['zoneId'], 
+                'gmtOffset': rec['gmtOffset'], 
+                'longtitude': rec['longtitude'], 
+                'latitude': rec['latitude'], 
+                'version': rec['version'], 
+                'groupId': rec['groupId'], 
+                'gColorType': rec['gColorType'], 
+                'online': rec['online']
+            }
+
+            devices.append(dev)
+        
+        return devices
 
     def get_sign(self, data):
         sorted_data = collections.OrderedDict(sorted(data.items()))

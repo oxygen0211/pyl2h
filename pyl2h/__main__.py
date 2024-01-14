@@ -56,7 +56,9 @@ def main() -> int:
     cloud = Cloud_Client()
     if "user" in args and "password" in args:
         cloud.login(args.user, args.password)
-        cloud.list_devices()
+        devices = cloud.list_devices()
+        print(f"discovered devices from cloud: {devices}")
+        server.setDiscoveredDevices(devices)
 
     ip = args.ip
 

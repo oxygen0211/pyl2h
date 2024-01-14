@@ -1,12 +1,22 @@
 import socket
 import copy
+import binascii
 
 class UDPServer:
     def __init__(self) -> None:
         self.devices = {}
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.bind(("", 35932))
+
+    def setDiscoveredDevices(self, devices):
+        for dev in devices:
+            mac = binascii.a2b_qp(dev['mac'])
+            self.devices[mac] = dev
+            message = b'\xa1\x00'+mac+b'\x00\x07\x01\x00\x00\x00\x00\x00\x00\x00\x23'
+            print(f'Sending discovery for {mac}')
+            self.sendMessage('255.255.255.255', message)
 
     def decodeStatusBroadcast(self, data, ip, dev):
         mac = data[2:8]
@@ -20,6 +30,7 @@ class UDPServer:
         return dev
 
     def processMessage(self, data, address):
+        print(f"got message: {data} from address: {address}")
         ip = address[0]
         oldState = self.devices[ip] if ip in self.devices else {"channels": {}}
         newState = self.decodeStatusBroadcast(data, ip, copy.deepcopy(oldState))
@@ -27,7 +38,7 @@ class UDPServer:
         if oldState == newState:
             return None
 
-        self.devices[ip] = newState
+        self.devices[newState["mac"]] = newState
         return newState
 
     def sendMessage(self, ip, message):
