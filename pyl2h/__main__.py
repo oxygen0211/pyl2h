@@ -60,16 +60,17 @@ def main() -> int:
     args = get_arguments()
 
     cloud = CloudClient()
-    if "user" in args and "password" in args:
-        cloud.login(args.user, args.password)
-        devices = cloud.list_devices()
-        print(f"discovered devices from cloud: {devices}")
-        server.set_discovered_devices(devices)
 
     ip = args.ip
 
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, monitor_updates)
+    print(args)
+    if args.user is not None and args.password is not None:
+        cloud.login(args.user, args.password)
+        devices = cloud.list_devices()
+        print(f"discovered devices from cloud: {devices}")
+        server.set_discovered_devices(devices)
 
     while True:
         devices = server.get_devices()

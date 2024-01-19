@@ -3,6 +3,9 @@
 import socket
 import copy
 import binascii
+from uu import encode
+
+from matplotlib.pyplot import step
 
 class UDPServer:
     """UDP Listener/Server functionality"""
@@ -16,35 +19,50 @@ class UDPServer:
     def set_discovered_devices(self, devices):
         """Add known devices that have been discovered (i.e. through cloud)"""
         for dev in devices:
-            mac = binascii.a2b_qp(dev['mac'])
-            self.devices[mac] = dev
-            message = b'\xa1\x00'+mac+b'\x00\x07\x01\x00\x00\x00\x00\x00\x00\x00\x23'
-            print(f'Sending discovery for {mac}')
-            self.send_message('255.255.255.255', message)
+            mac = dev['mac']
+            encoded_mac = b''
+            
+            for i in range(0, len(mac), 2):
+                byte = mac[i:i+2]
+                encoded_mac += int(byte, 16).to_bytes(1, 'big')
 
-    def decode_status_broadcast(self, data, ip, dev):
+            dev['mac'] = encoded_mac 
+            self.devices[encoded_mac] = dev
+            message = b'\xa1\x00'+encoded_mac+b'\x00\x07\x00\x01\x00\x00\x00\x00\x23'
+            self.send_message('255.255.255.255', message)
+        print(f'Sent discovery for {len(devices)} devices')
+
+    def decode_status_broadcast(self, data, ip):
         """Decode status update broadcasted by device"""
         mac = data[2:8]
         channel = data[len(data)-2]
         is_on = not data[len(data)-1] == 0
 
-        dev["mac"] = mac
-        dev["channels"][channel] = is_on
-        dev["ip"] = ip
+        state = {}
+        state["mac"] = mac
+        state["channel"] = channel
+        state["status"] = is_on
+        state["ip"] = ip
 
-        return dev
+        return state
 
     def process_message(self, data, address):
         """Process message received on UDP socket"""
         ip = address[0]
-        old_state = self.devices[ip] if ip in self.devices else {"channels": {}}
-        new_state = self.decode_status_broadcast(data, ip, copy.deepcopy(old_state))
+        new_state = self.decode_status_broadcast(data, ip)
+        mac = new_state["mac"]
 
-        if old_state == new_state:
-            return None
 
-        self.devices[ip] = new_state
-        return new_state
+        old_state = self.devices[mac] if mac in self.devices else {}
+        old_state["mac"] = new_state["mac"]
+        if "channels" not in old_state:
+            old_state["channels"] = {}
+        old_state["channels"][new_state["channel"]] = new_state["status"]
+        old_state["ip"] = ip
+
+        self.devices[mac] = old_state
+        
+        return old_state
 
     def send_message(self, ip, message):
         """Send a message to a device or Broadcast"""
