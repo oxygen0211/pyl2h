@@ -1,11 +1,6 @@
 """UDP functionality for internal communication with devices."""
 
 import socket
-import copy
-import binascii
-from uu import encode
-
-from matplotlib.pyplot import step
 
 class UDPServer:
     """UDP Listener/Server functionality"""
@@ -21,12 +16,12 @@ class UDPServer:
         for dev in devices:
             mac = dev['mac']
             encoded_mac = b''
-            
+
             for i in range(0, len(mac), 2):
                 byte = mac[i:i+2]
                 encoded_mac += int(byte, 16).to_bytes(1, 'big')
 
-            dev['mac'] = encoded_mac 
+            dev['mac'] = encoded_mac
             self.devices[encoded_mac] = dev
             message = b'\xa1\x00'+encoded_mac+b'\x00\x07\x00\x01\x00\x00\x00\x00\x23'
             self.send_message('255.255.255.255', message)
@@ -61,7 +56,7 @@ class UDPServer:
         old_state["ip"] = ip
 
         self.devices[mac] = old_state
-        
+
         return old_state
 
     def send_message(self, ip, message):
