@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyl2h"
-version = "0.1.2"
+version = "0.2.0"
 description = "Python library for controlling Link2Home devices"
 readme = "README.md"
 authors = [{ name = "oxygen0211" }]
