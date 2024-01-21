@@ -71,7 +71,6 @@ class UDPServer:
         for dev in self.devices.values():
             if dev["ip"] == ip:
                 mac = dev["mac"]
-                print(f'found device - mac: {mac}')
                 message = b'\xa1\x04'+mac+b'\x00\x09\x01\xf2\x02\xd1\x71\x50\x01'+channel_byte+state_byte
                 self.send_message(ip, message)
                 break
