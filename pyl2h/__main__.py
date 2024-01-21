@@ -78,11 +78,12 @@ def main() -> int:
         for d in devices.items():
             print(d)
 
-        if ip is not None and ip in devices:
-            dev = devices[ip]
-            new_state = not dev["channels"][1]
-            print(f'Switching device {ip} to {new_state}')
-            server.set_status(ip, 1, new_state)
+        if ip is not None:
+            for dev in devices.values():
+                if "ip" in dev and dev["ip"] == ip:
+                    new_state = not dev["channels"][1]
+                    print(f'Switching device {ip} to {new_state}')
+                    server.set_status(ip, 1, new_state)
 
         sleep(60)
 

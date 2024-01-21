@@ -65,12 +65,16 @@ class UDPServer:
 
     def set_status(self, ip, channel: int, state):
         """Change the status of a device by sending a UDP multicast to it"""
+        print(f'Setting state {state} on channel {channel} for device {ip}')
         state_byte = b'\xff' if state else b'\x00'
         channel_byte = bytes([channel])
-        device = self.devices[ip]
-        mac = device["mac"]
-        message = b'\xa1\x04'+mac+b'\x00\x09\x01\xf2\x02\xd1\x71\x50\x01'+channel_byte+state_byte
-        self.send_message(ip, message)
+        for dev in self.devices.values():
+            if dev["ip"] == ip:
+                mac = dev["mac"]
+                print(f'found device - mac: {mac}')
+                message = b'\xa1\x04'+mac+b'\x00\x09\x01\xf2\x02\xd1\x71\x50\x01'+channel_byte+state_byte
+                self.send_message(ip, message)
+                break
 
     def get_devices(self):
         """Get the currently known list of devices"""
